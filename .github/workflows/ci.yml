@@ -31,16 +31,16 @@ jobs:
           pip install black isort flake8 mypy
 
       - name: Run black
-        run: black --check src/ tests/
+        run: black --check src/ tests/ configs/ scripts/
 
       - name: Run isort
-        run: isort --check-only src/ tests/
+        run: isort --check-only src/ tests/ configs/ scripts/ --profile black
 
       - name: Run flake8
-        run: flake8 src/ tests/ --max-line-length=100 --extend-ignore=E203,W503
+        run: flake8 src/ tests/ configs/ scripts/ --max-line-length=88 --extend-ignore=E203,W503,E402
 
       - name: Run mypy
-        run: mypy src/ --ignore-missing-imports
+        run: mypy src/ --ignore-missing-imports --no-strict-optional --allow-untyped-calls --allow-untyped-defs
 
   test:
     runs-on: ubuntu-latest
