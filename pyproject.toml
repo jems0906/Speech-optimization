@@ -46,7 +46,8 @@ speech-serve = "src.serving.main:main"
 speech-optimize = "src.optim.optimize_model:main"
 
 [tool.setuptools]
-package-dir = {"" = "."}
+packages = ["src", "src.models", "src.optim", "src.profiling", "src.serving"]
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["."]
