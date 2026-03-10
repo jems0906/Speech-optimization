@@ -45,7 +45,7 @@ class ASRInference:
         if isinstance(audio, torch.Tensor):
             audio = audio.squeeze().numpy()
         else:
-            audio = audio.squeeze() if hasattr(audio, 'squeeze') else audio
+            audio = audio.squeeze() if hasattr(audio, "squeeze") else audio
 
         # Process audio
         input_features = self.processor(
@@ -83,4 +83,5 @@ class ASRInference:
         except Exception as e:
             # Warmup failures are non-critical
             import logging
+
             logging.getLogger(__name__).warning(f"Warmup failed: {e}")
