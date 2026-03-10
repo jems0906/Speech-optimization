@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  speech-api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: speech-rt-api
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+      - MODEL_NAME=whisper-base
+      - DEVICE=cuda
+      - USE_FP16=true
+      - HOST=0.0.0.0
+      - PORT=8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../models:/app/models
+      - ../logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  speech-api-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: speech-rt-dev
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=0
+    ports:
+      - "8000:8000"
+      - "8888:8888"
+    volumes:
+      - ..:/app
+    stdin_open: true
+    tty: true
+    command: bash

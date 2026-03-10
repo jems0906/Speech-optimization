@@ -1,0 +1,42 @@
+# Development Dockerfile with additional tools
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3-pip \
+    python3-dev \
+    ffmpeg \
+    libsndfile1 \
+    git \
+    curl \
+    vim \
+    htop \
+    nvidia-cuda-toolkit \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip3 install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies with dev extras
+RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir jupyter ipython
+
+# Copy application code
+COPY . .
+
+# Install the package in editable mode
+RUN pip3 install -e ".[dev]"
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV CUDA_VISIBLE_DEVICES=0
+
+EXPOSE 8000 8888
+
+CMD ["bash"]
