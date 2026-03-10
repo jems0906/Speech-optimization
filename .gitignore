@@ -40,14 +40,14 @@ htmlcov/
 .tox/
 
 # Models and data
-models/
+/models/
 *.pth
 *.pt
 *.onnx
 *.engine
 *.bin
-data/
-logs/
+/data/
+/logs/
 
 # Environment
 .env
