@@ -8,8 +8,12 @@ from pydantic import BaseModel, Field
 class TranscriptionRequest(BaseModel):
     """Request for transcription."""
 
-    language: Optional[str] = Field(None, description="Language code (e.g., 'en', 'es')")
-    task: str = Field("transcribe", description="Task type: 'transcribe' or 'translate'")
+    language: Optional[str] = Field(
+        None, description="Language code (e.g., 'en', 'es')"
+    )
+    task: str = Field(
+        "transcribe", description="Task type: 'transcribe' or 'translate'"
+    )
 
 
 class TranscriptionResponse(BaseModel):

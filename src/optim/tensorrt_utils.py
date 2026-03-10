@@ -1,8 +1,6 @@
 """TensorRT conversion utilities."""
 
 import logging
-from pathlib import Path
-from typing import Optional
 
 import torch
 
@@ -98,7 +96,9 @@ class TensorRTConverter:
             trt_model = torch_tensorrt.compile(
                 model,
                 inputs=[dummy_input],
-                enabled_precisions={torch.float16} if self.fp16_mode else {torch.float32},
+                enabled_precisions=(
+                    {torch.float16} if self.fp16_mode else {torch.float32}
+                ),
                 workspace_size=self.workspace_size,
             )
 

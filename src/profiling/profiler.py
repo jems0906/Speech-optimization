@@ -23,7 +23,7 @@ class PerformanceProfiler:
 
         start = time.perf_counter()
         yield
-        
+
         if self.device == "cuda":
             torch.cuda.synchronize()
 

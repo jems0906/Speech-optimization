@@ -4,7 +4,7 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
-from torch.quantization import get_default_qconfig, prepare, quantize_dynamic
+from torch.quantization import quantize_dynamic
 
 
 class ModelOptimizer:
@@ -59,9 +59,7 @@ class ModelOptimizer:
         )
 
     @staticmethod
-    def estimate_speedup(
-        original_time: float, optimized_time: float
-    ) -> dict:
+    def estimate_speedup(original_time: float, optimized_time: float) -> dict:
         """Calculate optimization speedup metrics."""
         speedup = original_time / optimized_time if optimized_time > 0 else 0
         reduction_pct = ((original_time - optimized_time) / original_time) * 100

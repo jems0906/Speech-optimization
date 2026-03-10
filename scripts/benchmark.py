@@ -27,7 +27,9 @@ def benchmark_configuration(
     iterations: int,
 ):
     """Benchmark a specific configuration."""
-    logger.info(f"Benchmarking: {model_name}, FP16={use_fp16}, Quant={use_quantization}")
+    logger.info(
+        f"Benchmarking: {model_name}, FP16={use_fp16}, Quant={use_quantization}"
+    )
 
     # Load model
     dtype = torch.float16 if use_fp16 else torch.float32
@@ -148,9 +150,7 @@ def main():
     logger.info("\n" + "=" * 80)
     logger.info("BENCHMARK SUMMARY")
     logger.info("=" * 80)
-    logger.info(
-        f"{'Model':<20} {'Config':<15} {'Mean (ms)':<12} {'GPU Mem (GB)':<12}"
-    )
+    logger.info(f"{'Model':<20} {'Config':<15} {'Mean (ms)':<12} {'GPU Mem (GB)':<12}")
     logger.info("-" * 80)
 
     for result in results:

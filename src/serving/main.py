@@ -1,9 +1,9 @@
 """FastAPI application for ASR serving."""
 
 import logging
+import threading
 import time
 from io import BytesIO
-from pathlib import Path
 from typing import Optional
 
 import torch
@@ -20,7 +20,6 @@ from src.serving.config import settings
 from src.serving.schemas import (
     HealthResponse,
     ModelInfoResponse,
-    TranscriptionRequest,
     TranscriptionResponse,
 )
 
@@ -48,8 +47,6 @@ app.add_middleware(
 )
 
 # Global state (thread-safe for read-heavy workloads)
-import threading
-
 asr_engine: Optional[ASRInference] = None
 profiler: Optional[PerformanceProfiler] = None
 _startup_lock = threading.Lock()
@@ -118,16 +115,16 @@ async def startup_event():
 async def shutdown_event():
     """Cleanup resources on shutdown."""
     global asr_engine, profiler
-    
+
     logger.info("Shutting down...")
-    
+
     # Cleanup
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
-    
+
     asr_engine = None
     profiler = None
-    
+
     logger.info("Shutdown complete")
 
 
@@ -178,20 +175,22 @@ async def transcribe_audio(
         raise HTTPException(status_code=503, detail="Model not loaded")
 
     # Validate file type
-    if audio.content_type and not audio.content_type.startswith(("audio/", "application/octet-stream")):
+    if audio.content_type and not audio.content_type.startswith(
+        ("audio/", "application/octet-stream")
+    ):
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid file type: {audio.content_type}. Expected audio file."
+            detail=f"Invalid file type: {audio.content_type}. Expected audio file.",
         )
-    
+
     audio_buffer = None
     try:
         # Read audio file
         audio_bytes = await audio.read()
-        
+
         if len(audio_bytes) == 0:
             raise HTTPException(status_code=400, detail="Empty audio file")
-        
+
         audio_buffer = BytesIO(audio_bytes)
 
         # Load audio
@@ -199,7 +198,9 @@ async def transcribe_audio(
 
         # Resample if needed
         if sample_rate != settings.sample_rate:
-            resampler = torchaudio.transforms.Resample(sample_rate, settings.sample_rate)
+            resampler = torchaudio.transforms.Resample(
+                sample_rate, settings.sample_rate
+            )
             waveform = resampler(waveform)
 
         # Check duration
@@ -207,7 +208,10 @@ async def transcribe_audio(
         if duration > settings.max_audio_length_seconds:
             raise HTTPException(
                 status_code=400,
-                detail=f"Audio too long: {duration:.2f}s (max: {settings.max_audio_length_seconds}s)",
+                detail=(
+                    f"Audio too long: {duration:.2f}s "
+                    f"(max: {settings.max_audio_length_seconds}s)"
+                ),
             )
 
         # Transcribe

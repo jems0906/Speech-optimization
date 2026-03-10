@@ -1,6 +1,5 @@
 """Tests for optimization utilities."""
 
-import pytest
 import torch
 import torch.nn as nn
 
