@@ -1,0 +1,18 @@
+asr:
+  backend: transformers
+  model_id: openai/whisper-small
+  device: cuda
+  dtype: float16
+  chunk_length_s: 15
+  stride_length_s: 5
+
+optimization:
+  enable_torch_compile: false
+  enable_dynamic_int8: false
+  enable_pruning: false
+  pruning_amount: 0.2
+
+serving:
+  host: 0.0.0.0
+  port: 8000
+  workers: 1

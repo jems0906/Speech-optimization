@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speech-rt-optimization"
+version = "0.1.0"
+description = "Real-time speech-to-text optimization service"
+requires-python = ">=3.10"
+dependencies = [
+	"fastapi>=0.111,<1.0",
+	"uvicorn[standard]>=0.30,<1.0",
+	"gunicorn>=22.0",
+	"numpy>=1.26",
+	"python-multipart>=0.0.9",
+	"pydantic>=2.7",
+	"pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+asr = [
+	"torch>=2.3",
+	"torchaudio>=2.3",
+	"transformers>=4.42",
+	"accelerate>=0.33",
+]
+optimization = [
+	"onnx>=1.16",
+	"onnxruntime-gpu>=1.19; platform_system != 'Darwin'",
+	"bitsandbytes>=0.43; platform_system == 'Linux'",
+	"torch-tensorrt>=2.3; platform_system == 'Linux'",
+]
+dev = [
+	"pytest>=8.2",
+	"coverage>=7.6",
+	"httpx>=0.27",
+	"black>=24.8",
+	"isort>=5.13",
+	"flake8>=7.1",
+	"pre-commit>=3.8",
+	"build>=1.2",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["src"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 70
