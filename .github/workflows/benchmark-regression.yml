@@ -63,7 +63,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -228,7 +228,7 @@ jobs:
 
       - name: Upload comparison artifact
         if: ${{ hashFiles('artifacts/benchmark_comparison.json') != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: benchmark-comparison
           path: |
@@ -309,7 +309,7 @@ jobs:
           cat artifacts/benchmark_blocker_summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload blocker artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: benchmark-blocker-summary
           path: artifacts/benchmark_blocker_summary.md
