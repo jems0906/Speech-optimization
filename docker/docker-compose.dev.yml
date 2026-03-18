@@ -1,0 +1,25 @@
+# Dev override: CPU-only mock backend, no GPU, no nginx, mapped to port 8080.
+# Usage:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.dev.yml up --build
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    ports:
+      - "8080:8000"
+    environment:
+      ASR_BACKEND: mock
+      ASR_MODEL_ID: openai/whisper-small
+      DEVICE: cpu
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    deploy:
+      resources: {}   # override GPU reservation — not needed for dev
+
+  nginx:
+    profiles: ["prod"]  # opt-out nginx in dev — only start with --profile prod

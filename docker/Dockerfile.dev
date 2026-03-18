@@ -1,0 +1,32 @@
+# Lightweight CPU-only development image for local testing.
+# Does NOT include torch/torchaudio/GPU deps - API runs in mock or
+# CPU-transformers mode (ASR_BACKEND=mock).
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install only the pure-Python runtime deps (no torch/torchaudio).
+COPY requirements.txt ./
+RUN pip install --no-cache-dir \
+    fastapi>=0.111 \
+    "uvicorn[standard]>=0.30" \
+    numpy>=1.26 \
+    pyyaml>=6.0 \
+    python-multipart>=0.0.9 \
+    "pydantic>=2.7"
+
+COPY src ./src
+COPY configs ./configs
+
+# /app must be on PYTHONPATH so `from src.<pkg>` resolves correctly.
+ENV PYTHONPATH=/app
+ENV ASR_BACKEND=mock
+ENV ASR_MODEL_ID=openai/whisper-small
+ENV DEVICE=cpu
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
+CMD ["python", "-m", "uvicorn", "src.serving.app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

@@ -3,6 +3,8 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+    ports:
+      - "${PORT:-8000}:8000"
     environment:
       ASR_BACKEND: ${ASR_BACKEND:-transformers}
       ASR_MODEL_ID: ${ASR_MODEL_ID:-openai/whisper-small}
@@ -10,6 +12,12 @@ services:
       ASR_DTYPE: ${ASR_DTYPE:-float32}
       ENABLE_TORCH_COMPILE: ${ENABLE_TORCH_COMPILE:-false}
       ENABLE_DYNAMIC_INT8: ${ENABLE_DYNAMIC_INT8:-false}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
     deploy:
       resources:
         reservations:
