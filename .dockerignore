@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Development tools
+.pre-commit-config.yaml
+.flake8
+.github/
+
+# Test files
+tests/
+
+# Notebooks
+notebooks/
+
+# Scripts (not needed at runtime)
+scripts/
+
+# Artifacts (benchmark data, not needed at runtime)
+artifacts/
+
+# Docker files themselves
+docker/
+
+# Documentation
+*.md
+CHANGELOG.md
+README.md
+WORKFLOW_TESTING_GUIDE.md
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/

@@ -53,9 +53,6 @@ jobs:
       benchmark_severity_rank: ${{ steps.parse_status.outputs.severity_rank }}
       benchmark_p95_exceeded: ${{ steps.parse_status.outputs.p95_exceeded }}
       benchmark_peak_mem_exceeded: ${{ steps.parse_status.outputs.peak_mem_exceeded }}
-    defaults:
-      run:
-        working-directory: speech-rt-optimization
     env:
       HISTORY_JSON: ${{ github.event.inputs.history_json || 'artifacts/benchmark_history.json' }}
       BASELINE_INDEX: ${{ github.event.inputs.baseline_index || '-2' }}
@@ -91,7 +88,7 @@ jobs:
 
       - name: Compare benchmark runs
         id: compare_run
-        if: ${{ hashFiles(format('speech-rt-optimization/{0}', env.HISTORY_JSON)) != '' }}
+        if: ${{ hashFiles(env.HISTORY_JSON) != '' }}
         continue-on-error: true
         shell: bash
         run: |
@@ -117,7 +114,7 @@ jobs:
 
       - name: Parse benchmark status lines
         id: parse_status
-        if: ${{ hashFiles('speech-rt-optimization/artifacts/benchmark_compare_stdout.txt') != '' }}
+        if: ${{ hashFiles('artifacts/benchmark_compare_stdout.txt') != '' }}
         shell: bash
         run: |
           status_file="artifacts/benchmark_compare_stdout.txt"
@@ -135,7 +132,7 @@ jobs:
           echo "peak_mem_exceeded=$(get_value BENCHMARK_PEAK_MEM_EXCEEDED)" >> "$GITHUB_OUTPUT"
 
       - name: Build markdown regression summary
-        if: ${{ hashFiles('speech-rt-optimization/artifacts/benchmark_comparison.json') != '' }}
+        if: ${{ hashFiles('artifacts/benchmark_comparison.json') != '' }}
         shell: bash
         run: |
           python - <<'PY'
@@ -183,7 +180,7 @@ jobs:
           PY
 
       - name: Comment benchmark summary on PR
-        if: ${{ github.event_name == 'pull_request' && hashFiles('speech-rt-optimization/artifacts/benchmark_comparison.md') != '' }}
+        if: ${{ github.event_name == 'pull_request' && hashFiles('artifacts/benchmark_comparison.md') != '' }}
         uses: actions/github-script@v7
         with:
           script: |
@@ -193,7 +190,6 @@ jobs:
             const marker = '<!-- benchmark-regression-comment -->';
             const mdPath = path.join(
               process.env.GITHUB_WORKSPACE,
-              'speech-rt-optimization',
               'artifacts',
               'benchmark_comparison.md'
             );
@@ -231,14 +227,14 @@ jobs:
             }
 
       - name: Upload comparison artifact
-        if: ${{ hashFiles('speech-rt-optimization/artifacts/benchmark_comparison.json') != '' }}
+        if: ${{ hashFiles('artifacts/benchmark_comparison.json') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-comparison
           path: |
-            speech-rt-optimization/artifacts/benchmark_comparison.json
-            speech-rt-optimization/artifacts/benchmark_comparison.md
-            speech-rt-optimization/artifacts/benchmark_compare_stdout.txt
+            artifacts/benchmark_comparison.json
+            artifacts/benchmark_comparison.md
+            artifacts/benchmark_compare_stdout.txt
 
       - name: Enforce benchmark regression gate
         if: ${{ steps.compare_run.outputs.exit_code != '' && steps.compare_run.outputs.exit_code != '0' }}
@@ -316,4 +312,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-blocker-summary
-          path: speech-rt-optimization/artifacts/benchmark_blocker_summary.md
+          path: artifacts/benchmark_blocker_summary.md
