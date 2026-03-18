@@ -116,20 +116,20 @@ def test_transcribe_empty_file_returns_400() -> None:
 
 def test_decode_wav_fallback_without_torch() -> None:
     serving_module = sys.modules["src.serving.app"]
-    
+
     wav_bytes = _build_wav_bytes()
     original_torch = serving_module.torch
     original_torchaudio = serving_module.torchaudio
-    
+
     try:
         serving_module.torch = None  # type: ignore[assignment]
         serving_module.torchaudio = None  # type: ignore[assignment]
-        
+
         # Create a mock UploadFile
         class MockFile:
             async def read(self):
                 return wav_bytes
-        
+
         # Call _decode_audio which exercises line 195
         waveform, sample_rate = asyncio.run(serving_module._decode_audio(MockFile()))
         assert isinstance(waveform, np.ndarray)
