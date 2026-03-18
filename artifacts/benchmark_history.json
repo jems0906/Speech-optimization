@@ -1,0 +1,58 @@
+{
+  "history": [
+    {
+      "timestamp": "2026-03-15T10:00:00Z",
+      "ref": "baseline-1",
+      "rows": [
+        {
+          "variant": "whisper-base",
+          "mean_ms": 100.5,
+          "p95_ms": 115.3,
+          "p99_ms": 125.8,
+          "peak_gpu_mb": 512.0
+        },
+        {
+          "variant": "whisper-small",
+          "mean_ms": 150.2,
+          "p95_ms": 172.5,
+          "p99_ms": 189.3,
+          "peak_gpu_mb": 768.0
+        },
+        {
+          "variant": "whisper-medium",
+          "mean_ms": 250.8,
+          "p95_ms": 289.1,
+          "p99_ms": 312.5,
+          "peak_gpu_mb": 1280.0
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-17T10:00:00Z",
+      "ref": "candidate-1",
+      "rows": [
+        {
+          "variant": "whisper-base",
+          "mean_ms": 102.1,
+          "p95_ms": 119.8,
+          "p99_ms": 128.2,
+          "peak_gpu_mb": 520.5
+        },
+        {
+          "variant": "whisper-small",
+          "mean_ms": 158.5,
+          "p95_ms": 185.0,
+          "p99_ms": 201.2,
+          "peak_gpu_mb": 800.3
+        },
+        {
+          "variant": "whisper-medium",
+          "mean_ms": 285.9,
+          "p95_ms": 340.2,
+          "p99_ms": 365.8,
+          "peak_gpu_mb": 1450.2
+        }
+      ]
+    }
+  ]
+}

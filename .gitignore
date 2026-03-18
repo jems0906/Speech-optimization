@@ -23,7 +23,10 @@ htmlcov/
 .vscode/
 
 # ML artifacts
-artifacts/
+artifacts/*
+!artifacts/benchmark_history.json
+!artifacts/benchmark_history_clean.json
+!artifacts/benchmark_history_regression.json
 *.onnx
 *.pt
 *.pth

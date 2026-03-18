@@ -1,0 +1,30 @@
+{
+  "history": [
+    {
+      "timestamp": "2026-03-15T10:00:00Z",
+      "ref": "baseline-1",
+      "rows": [
+        {
+          "variant": "whisper-base",
+          "mean_ms": 100.0,
+          "p95_ms": 120.0,
+          "p99_ms": 130.0,
+          "peak_gpu_mb": 500.0
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-17T10:00:00Z",
+      "ref": "candidate-1",
+      "rows": [
+        {
+          "variant": "whisper-base",
+          "mean_ms": 107.0,
+          "p95_ms": 128.0,
+          "p99_ms": 140.0,
+          "peak_gpu_mb": 530.0
+        }
+      ]
+    }
+  ]
+}

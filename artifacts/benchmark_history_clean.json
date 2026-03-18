@@ -1,0 +1,64 @@
+{
+  "history": [
+    {
+      "timestamp": "2026-03-15T10:00:00Z",
+      "ref": "baseline-1",
+      "rows": [
+        {
+          "variant": "whisper-base",
+          "mean_ms": 100.5,
+          "p95_ms": 115.3,
+          "p99_ms": 125.8,
+          "peak_gpu_mb": 512.0
+        },
+        {
+          "variant": "whisper-small",
+          "mean_ms": 150.2,
+          "p95_ms": 172.5,
+          "p99_ms": 189.3,
+          "peak_gpu_mb": 768.0
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-16T10:00:00Z",
+      "ref": "candidate-2",
+      "rows": [
+        {
+          "variant": "whisper-base",
+          "mean_ms": 100.8,
+          "p95_ms": 115.8,
+          "p99_ms": 126.2,
+          "peak_gpu_mb": 513.5
+        },
+        {
+          "variant": "whisper-small",
+          "mean_ms": 150.9,
+          "p95_ms": 173.2,
+          "p99_ms": 189.8,
+          "peak_gpu_mb": 770.0
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-03-17T10:00:00Z",
+      "ref": "candidate-3",
+      "rows": [
+        {
+          "variant": "whisper-base",
+          "mean_ms": 101.2,
+          "p95_ms": 116.5,
+          "p99_ms": 127.0,
+          "peak_gpu_mb": 515.2
+        },
+        {
+          "variant": "whisper-small",
+          "mean_ms": 152.5,
+          "p95_ms": 177.0,
+          "p99_ms": 193.2,
+          "peak_gpu_mb": 778.0
+        }
+      ]
+    }
+  ]
+}
