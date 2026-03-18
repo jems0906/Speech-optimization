@@ -252,7 +252,7 @@ jobs:
   notify-regression:
     needs: compare
     runs-on: ubuntu-latest
-    if: ${{ needs.compare.outputs.benchmark_severity_rank == '2' }}
+    if: ${{ always() && needs.compare.outputs.benchmark_severity_rank == '2' }}
     steps:
       - name: Emit medium-severity summary
         shell: bash
@@ -280,7 +280,7 @@ jobs:
   blocker-escalation:
     needs: compare
     runs-on: ubuntu-latest
-    if: ${{ needs.compare.outputs.benchmark_severity_rank != '' && fromJSON(needs.compare.outputs.benchmark_severity_rank) >= 3 }}
+    if: ${{ always() && needs.compare.outputs.benchmark_severity_rank != '' && fromJSON(needs.compare.outputs.benchmark_severity_rank) >= 3 }}
     steps:
       - name: Create blocker summary artifact
         shell: bash
