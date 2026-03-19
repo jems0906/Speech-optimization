@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from src._optional_imports import optional_import
-from src.models.asr_pipeline import ASRPipeline
+from src.models.asr_pipeline import ASRPipeline, build_export_metadata
 
 torch = optional_import("torch")
 
@@ -53,7 +53,14 @@ def optimize_asr_pipeline(asr_pipeline: ASRPipeline, config: OptimizationConfig)
     return asr_pipeline
 
 
-def export_model_to_onnx(model: Any, output_path: Path, opset: int = 17) -> None:
+def export_model_to_onnx(
+    model: Any,
+    output_path: Path,
+    opset: int = 17,
+    *,
+    model_family: str = "auto",
+    model_id: str = "openai/whisper-small",
+) -> None:
     if torch is None:
         raise RuntimeError(
             "ONNX export requires torch and onnx. Install optional dependencies with: "
@@ -62,9 +69,12 @@ def export_model_to_onnx(model: Any, output_path: Path, opset: int = 17) -> None
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     model = model.cpu().eval()
-
-    # Whisper encoder input: (batch, n_mels=80, frames=3000).
-    dummy_input = torch.randn(1, 80, 3000, dtype=torch.float32)
+    dummy_input, input_names = build_export_metadata(
+        model,
+        model_family=model_family,
+        model_id=model_id,
+        torch_module=torch,
+    )
 
     torch.onnx.export(
         model,
@@ -73,7 +83,7 @@ def export_model_to_onnx(model: Any, output_path: Path, opset: int = 17) -> None
         export_params=True,
         opset_version=opset,
         do_constant_folding=True,
-        input_names=["input_features"],
+        input_names=input_names,
         output_names=["logits"],
     )
 

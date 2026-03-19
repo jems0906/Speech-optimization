@@ -1,6 +1,7 @@
 asr:
   backend: transformers
   model_id: openai/whisper-small
+  model_family: auto
   device: cuda
   dtype: float16
   chunk_length_s: 15

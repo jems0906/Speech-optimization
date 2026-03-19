@@ -15,7 +15,14 @@ from fastapi import HTTPException, WebSocketDisconnect
 from fastapi.testclient import TestClient
 
 from src._optional_imports import optional_attr_import, optional_import
-from src.models.asr_pipeline import ASRConfig, ASRPipeline
+from src.models.asr_pipeline import (
+    ASRConfig,
+    ASRPipeline,
+    build_export_metadata,
+    infer_model_family,
+    normalize_model_family,
+    resolve_model_family,
+)
 from src.optim.inference_optimizer import (
     OptimizationConfig,
     apply_bitsandbytes_int8,
@@ -476,6 +483,57 @@ def test_export_model_to_onnx_calls_torch_export() -> None:
         oi.torch = original_torch
 
 
+def test_export_model_to_onnx_wav2vec2_uses_input_values_shape() -> None:
+    import src.optim.inference_optimizer as oi
+
+    original_torch = oi.torch
+    calls: dict[str, object] = {}
+
+    class FakeOnnx:
+        @staticmethod
+        def export(model, dummy_input, output_path, **kwargs):
+            calls["dummy_input"] = dummy_input
+            calls["output_path"] = output_path
+            calls["kwargs"] = kwargs
+
+    class FakeTorch:
+        float32 = "float32"
+        onnx = FakeOnnx
+
+        @staticmethod
+        def randn(*shape, dtype=None):
+            calls["randn_shape"] = shape
+            return {"shape": shape, "dtype": dtype}
+
+    class FakeConfig:
+        model_type = "wav2vec2"
+
+    class FakeModel:
+        config = FakeConfig()
+
+        def cpu(self):
+            return self
+
+        def eval(self):
+            return self
+
+    try:
+        oi.torch = FakeTorch  # type: ignore[assignment]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "wav2vec2.onnx"
+            oi.export_model_to_onnx(
+                FakeModel(),
+                output,
+                model_family="auto",
+                model_id="facebook/wav2vec2-base-960h",
+            )
+
+        assert calls["randn_shape"] == (1, 16000)
+        assert calls["kwargs"]["input_names"] == ["input_values"]
+    finally:
+        oi.torch = original_torch
+
+
 def test_compile_with_tensorrt_returns_original_when_dependency_missing() -> None:
     import src.optim.inference_optimizer as oi
 
@@ -512,6 +570,54 @@ def test_get_submodule_traverses_nested_attributes() -> None:
     assert oi._get_submodule(root, "mid.leaf") is root.mid.leaf
 
 
+def test_model_family_helpers_cover_alias_and_inference_paths() -> None:
+    class FakeConfig:
+        model_type = "wav2vec2"
+
+    class FakeModel:
+        config = FakeConfig()
+
+    assert normalize_model_family("wav2vec") == "wav2vec2"
+    assert infer_model_family("facebook/wav2vec2-base-960h") == "wav2vec2"
+    assert infer_model_family("openai/whisper-small") == "whisper"
+    assert resolve_model_family("auto", model_id="foo/bar", model=FakeModel()) == "wav2vec2"
+
+    try:
+        normalize_model_family("unknown")
+        assert False, "Expected ValueError"
+    except ValueError as exc:
+        assert "unsupported model_family" in str(exc).lower()
+
+
+def test_build_export_metadata_uses_whisper_shape_by_default() -> None:
+    import src.models.asr_pipeline as ap
+
+    original_torch = ap.torch
+    calls: dict[str, object] = {}
+
+    class FakeTorch:
+        float32 = "float32"
+
+        @staticmethod
+        def randn(*shape, dtype=None):
+            calls["shape"] = shape
+            calls["dtype"] = dtype
+            return {"shape": shape, "dtype": dtype}
+
+    try:
+        ap.torch = FakeTorch  # type: ignore[assignment]
+        dummy_input, input_names = build_export_metadata(
+            object(),
+            model_family="auto",
+            model_id="openai/whisper-small",
+        )
+
+        assert dummy_input == {"shape": (1, 80, 3000), "dtype": "float32"}
+        assert input_names == ["input_features"]
+    finally:
+        ap.torch = original_torch
+
+
 def test_convert_to_fp16_calls_half_when_torch_present() -> None:
     import src.optim.inference_optimizer as oi
 
@@ -541,6 +647,7 @@ def test_load_runtime_settings_env_overrides_yaml_defaults() -> None:
     old_env = {
         "ASR_BACKEND": os.getenv("ASR_BACKEND"),
         "ASR_MODEL_ID": os.getenv("ASR_MODEL_ID"),
+        "ASR_MODEL_FAMILY": os.getenv("ASR_MODEL_FAMILY"),
         "ASR_DEVICE": os.getenv("ASR_DEVICE"),
         "ASR_DTYPE": os.getenv("ASR_DTYPE"),
         "ASR_CHUNK_LENGTH_S": os.getenv("ASR_CHUNK_LENGTH_S"),
@@ -556,6 +663,7 @@ def test_load_runtime_settings_env_overrides_yaml_defaults() -> None:
         app_mod._load_yaml_defaults = lambda _: {
             "asr_backend": "transformers",
             "asr_model_id": "openai/whisper-small",
+            "asr_model_family": "auto",
             "device": "cpu",
             "dtype": "float16",
             "chunk_length_s": 12.0,
@@ -568,6 +676,7 @@ def test_load_runtime_settings_env_overrides_yaml_defaults() -> None:
 
         os.environ["ASR_BACKEND"] = "mock"
         os.environ["ASR_MODEL_ID"] = "openai/whisper-tiny"
+        os.environ["ASR_MODEL_FAMILY"] = "wav2vec2"
         os.environ["ASR_DEVICE"] = "cpu"
         os.environ["ASR_DTYPE"] = "float32"
         os.environ["ASR_CHUNK_LENGTH_S"] = "9"
@@ -580,6 +689,7 @@ def test_load_runtime_settings_env_overrides_yaml_defaults() -> None:
         settings = app_mod.load_runtime_settings()
         assert settings.asr_backend == "mock"
         assert settings.asr_model_id == "openai/whisper-tiny"
+        assert settings.asr_model_family == "wav2vec2"
         assert settings.dtype == "float32"
         assert settings.chunk_length_s == 9.0
         assert settings.stride_length_s == 2.0
@@ -613,6 +723,7 @@ def test_get_asr_service_builds_pipeline_and_applies_optimizer() -> None:
         app_mod.load_runtime_settings = lambda: app_mod.RuntimeSettings(
             asr_backend="mock",
             asr_model_id="id",
+            asr_model_family="whisper",
             device="cpu",
             dtype="float32",
             chunk_length_s=8.0,
@@ -635,6 +746,7 @@ def test_get_asr_service_builds_pipeline_and_applies_optimizer() -> None:
         assert result == "optimized"
         assert isinstance(captured["service"], DummyASR)
         assert captured["service"].config.backend == "mock"
+        assert captured["service"].config.model_family == "whisper"
         assert captured["cfg"].enable_torch_compile is True
         assert captured["cfg"].enable_dynamic_int8 is True
         assert captured["cfg"].enable_pruning is True
@@ -987,6 +1099,68 @@ def test_asr_transcribe_no_language_and_string_output() -> None:
 
         result = pipeline.transcribe(FakeTensor([1.0, 2.0]), sample_rate=16000, language=None)
         assert result == "text-output"
+    finally:
+        ap.torch = original_torch
+        ap.torchaudio = original_torchaudio
+
+
+def test_asr_transcribe_ignores_language_for_wav2vec2() -> None:
+    import src.models.asr_pipeline as ap
+
+    original_torch = ap.torch
+    original_torchaudio = ap.torchaudio
+    calls: dict[str, object] = {}
+
+    class FakeTensor:
+        def __init__(self, arr):
+            self.arr = np.array(arr, dtype=np.float32)
+
+        @property
+        def ndim(self) -> int:
+            return self.arr.ndim
+
+        def detach(self):
+            return self
+
+        def cpu(self):
+            return self
+
+        def to(self, _dtype):
+            return self
+
+        def numpy(self):
+            return self.arr
+
+    class FakeTorch:
+        Tensor = FakeTensor
+        float32 = "float32"
+
+    class FakeConfig:
+        model_type = "wav2vec2"
+
+    class FakePipe:
+        def __init__(self) -> None:
+            self.model = type("Model", (), {"config": FakeConfig()})()
+
+        def __call__(self, payload, generate_kwargs=None):
+            calls["payload"] = payload
+            calls["generate_kwargs"] = generate_kwargs
+            return {"text": "wav2vec2-output"}
+
+    try:
+        ap.torch = FakeTorch  # type: ignore[assignment]
+        ap.torchaudio = object()  # type: ignore[assignment]
+
+        pipeline = ASRPipeline(ASRConfig(backend="mock", model_family="auto"))
+        pipeline.config.backend = "transformers"
+        pipeline.config.model_id = "facebook/wav2vec2-base-960h"
+        pipeline._pipe = FakePipe()
+
+        result = pipeline.transcribe(FakeTensor([1.0, 2.0]), sample_rate=16000, language="en")
+
+        assert result == "wav2vec2-output"
+        assert calls["payload"]["sampling_rate"] == 16000
+        assert calls["generate_kwargs"] is None
     finally:
         ap.torch = original_torch
         ap.torchaudio = original_torchaudio

@@ -19,6 +19,13 @@ def main() -> None:
     parser.add_argument("--iterations", type=int, default=20)
     parser.add_argument("--warmup", type=int, default=5)
     parser.add_argument("--model-id", type=str, default="openai/whisper-small")
+    parser.add_argument(
+        "--model-family",
+        type=str,
+        default="auto",
+        choices=["auto", "whisper", "wav2vec2"],
+        help="ASR model family. Use auto to infer from the loaded Hugging Face model.",
+    )
     parser.add_argument("--device", type=str, default="cuda")
     parser.add_argument(
         "--dtype", type=str, default="float16", choices=["float16", "float32", "bfloat16"]
@@ -48,6 +55,7 @@ def main() -> None:
         ASRConfig(
             backend="transformers",
             model_id=args.model_id,
+            model_family=args.model_family,
             device=args.device,
             dtype=args.dtype,
         )

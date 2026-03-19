@@ -8,6 +8,7 @@ services:
     environment:
       ASR_BACKEND: ${ASR_BACKEND:-transformers}
       ASR_MODEL_ID: ${ASR_MODEL_ID:-openai/whisper-small}
+      ASR_MODEL_FAMILY: ${ASR_MODEL_FAMILY:-auto}
       ASR_DEVICE: ${ASR_DEVICE:-cpu}
       ASR_DTYPE: ${ASR_DTYPE:-float32}
       ENABLE_TORCH_COMPILE: ${ENABLE_TORCH_COMPILE:-false}

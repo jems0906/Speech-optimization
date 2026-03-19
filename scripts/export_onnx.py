@@ -48,6 +48,13 @@ def main() -> None:
         description="Export ASR model to ONNX (and optionally TensorRT)"
     )
     parser.add_argument("--model-id", type=str, default="openai/whisper-small")
+    parser.add_argument(
+        "--model-family",
+        type=str,
+        default="auto",
+        choices=["auto", "whisper", "wav2vec2"],
+        help="ASR model family. Use auto to infer from the loaded Hugging Face model.",
+    )
     parser.add_argument("--output", type=Path, default=Path("artifacts/asr_model.onnx"))
     parser.add_argument("--opset", type=int, default=17)
     parser.add_argument(
@@ -66,12 +73,19 @@ def main() -> None:
         ASRConfig(
             backend="transformers",
             model_id=args.model_id,
+            model_family=args.model_family,
             device="cpu",
             dtype="float32",
         )
     )
 
-    export_model_to_onnx(pipeline.model, args.output, opset=args.opset)
+    export_model_to_onnx(
+        pipeline.model,
+        args.output,
+        opset=args.opset,
+        model_family=pipeline.model_family,
+        model_id=args.model_id,
+    )
     print(f"Exported ONNX model to: {args.output}")
 
     if args.tensorrt_engine:

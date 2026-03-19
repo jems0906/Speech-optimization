@@ -5,11 +5,15 @@ Real-time speech-to-text service optimized for low latency and production readin
 ## Stack
 
 - Python 3.10+
+- Optional C++17 for custom ops or other performance-critical extensions
 - PyTorch + Torchaudio
-- Hugging Face Transformers (Whisper default)
-- ONNX export path for runtime acceleration
+- Hugging Face Transformers ASR models (Whisper and Wav2Vec2 families)
+- ONNX + TensorRT or Torch-TensorRT for runtime acceleration
+- PyTorch quantization and bitsandbytes for INT8 / FP16 optimization paths
 - FastAPI + Uvicorn/Gunicorn
 - Docker + optional Nginx reverse proxy
+- CUDA toolkit + cuDNN for GPU deployment
+- PyTorch Profiler plus optional Nsight Systems / Nsight Compute for GPU profiling
 - pytest, coverage, pre-commit, GitHub Actions
 
 ## Repository Layout
@@ -39,12 +43,14 @@ speech-rt-optimization/
 python -m venv .venv
 . .venv/Scripts/activate
 pip install -r requirements.txt
+pip install .[asr,optimization,dev]
 ```
 
-2. Install full ASR and optimization dependencies when running real model inference.
+2. Optional: install a build toolchain if you plan to add custom C++17 extensions.
 
 ```bash
-pip install .[asr,optimization]
+# Windows: install Visual Studio Build Tools with C++ workload
+# Linux: install gcc/g++ with C++17 support
 ```
 
 3. Run the API.
@@ -102,6 +108,7 @@ Environment variables:
 - `ASR_BACKEND` (`transformers` or `mock`)
 - `CONFIG_PATH` (path to a YAML config file; defaults to `configs/default.yaml`; env vars override YAML values)
 - `ASR_MODEL_ID` (default `openai/whisper-small`)
+- `ASR_MODEL_FAMILY` (`auto`, `whisper`, or `wav2vec2`)
 - `ASR_DEVICE` (`cuda` or `cpu`)
 - `ASR_DTYPE` (`float16`, `float32`, `bfloat16`)
 - `ASR_CHUNK_LENGTH_S`
@@ -116,25 +123,25 @@ Environment variables:
 **Step 1 — Baseline**
 
 ```bash
-python scripts/profile_latency.py audio.wav --device cpu --dtype float32
+python scripts/profile_latency.py audio.wav --device cpu --dtype float32 --model-family whisper
 ```
 
 **Step 2 — torch.compile**
 
 ```bash
-python scripts/profile_latency.py audio.wav --device cuda --torch-compile
+python scripts/profile_latency.py audio.wav --device cuda --torch-compile --model-family whisper
 ```
 
 **Step 3 — Dynamic INT8 quantization (CPU)**
 
 ```bash
-python scripts/profile_latency.py audio.wav --device cpu --dynamic-int8
+python scripts/profile_latency.py audio.wav --device cpu --dynamic-int8 --model-family whisper
 ```
 
 **Step 4 — Magnitude pruning (sparsity)**
 
 ```bash
-python scripts/profile_latency.py audio.wav --device cuda --pruning-amount 0.2
+python scripts/profile_latency.py audio.wav --device cuda --pruning-amount 0.2 --model-family whisper
 ```
 
 **Step 5 — bitsandbytes INT8 (GPU VRAM reduction)**
@@ -162,20 +169,33 @@ model = compile_with_tensorrt(pipeline.model, input_shapes=[(1, 80, 3000)], dtyp
 **Step 8 — ONNX export (optionally build a TensorRT engine in one step)**
 
 ```bash
-python scripts/export_onnx.py --model-id openai/whisper-small --output artifacts/whisper.onnx
+python scripts/export_onnx.py --model-id openai/whisper-small --model-family whisper --output artifacts/whisper.onnx
 
 # Also serialize a TensorRT FP16 engine alongside the ONNX file:
-python scripts/export_onnx.py --model-id openai/whisper-small --output artifacts/whisper.onnx \
+python scripts/export_onnx.py --model-id openai/whisper-small --model-family whisper --output artifacts/whisper.onnx \
   --tensorrt-engine artifacts/whisper.trt
+
+# Wav2Vec2 example:
+python scripts/export_onnx.py --model-id facebook/wav2vec2-base-960h --model-family wav2vec2 --output artifacts/wav2vec2.onnx
 ```
 
 **Step 9 — PyTorch Profiler (operator-level breakdown)**
 
 ```bash
-python scripts/profile_latency.py audio.wav --device cuda --torch-profiler
+python scripts/profile_latency.py audio.wav --device cuda --torch-profiler --model-family whisper
 ```
 
-**Step 10 — Visualize before/after optimization**
+**Step 10 — Nsight Systems / Nsight Compute (GPU profiling)**
+
+```bash
+# Timeline/system view
+python scripts/profile_nsight.py audio.wav --tool nsys --model-family whisper --output artifacts/nsys_speech
+
+# Kernel-level inspection
+python scripts/profile_nsight.py audio.wav --tool ncu --model-family whisper --output artifacts/ncu_speech
+```
+
+**Step 11 — Visualize before/after optimization**
 
 ```bash
 python scripts/visualize_benchmark.py audio.wav --device cuda \
@@ -222,11 +242,13 @@ python scripts/visualize_benchmark.py audio.wav --device cuda \
   --fail-if-target-missed
 ```
 
-**Step 11 — Deploy**
+**Step 12 — Deploy**
 
 ```bash
 docker build -f docker/Dockerfile -t speech-rt-optimization . && docker run --gpus all -p 8000:8000 speech-rt-optimization
 ```
+
+The production container entrypoint uses Gunicorn with a single Uvicorn worker via `gunicorn.conf.py`.
 
 ## Tests and Quality
 
@@ -348,5 +370,6 @@ The compose stack exposes port 80 via Nginx and routes to the API container on p
 ## Notes
 
 - `ASR_BACKEND=mock` is useful for API tests without loading model weights.
-- Default `requirements.txt` keeps install size small for API/dev workflows; use `.[asr,optimization]` for full model and acceleration stack.
+- `requirements.txt` contains the shared baseline packages; install `.[asr,optimization,dev]` to match the full project stack from this checklist.
 - For production GPU serving, use a host with NVIDIA drivers, CUDA, and cuDNN support.
+- Nsight CLI tools (`nsys`, `ncu`) must be installed separately from the NVIDIA CUDA toolkit if you want GPU timeline or kernel analysis.

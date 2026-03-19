@@ -24,7 +24,7 @@ from fastapi import (
 from pydantic import BaseModel
 
 from src._optional_imports import optional_import
-from src.models.asr_pipeline import ASRConfig, ASRPipeline
+from src.models.asr_pipeline import ASRConfig, ASRPipeline, normalize_model_family
 from src.optim.inference_optimizer import OptimizationConfig, optimize_asr_pipeline
 
 torch = optional_import("torch")
@@ -35,6 +35,7 @@ torchaudio = optional_import("torchaudio")
 class RuntimeSettings:
     asr_backend: str
     asr_model_id: str
+    asr_model_family: str
     device: str
     dtype: str
     chunk_length_s: float
@@ -67,6 +68,7 @@ def _load_yaml_defaults(path: Path) -> dict:
     return {
         "asr_backend": str(asr.get("backend", "transformers")),
         "asr_model_id": str(asr.get("model_id", "openai/whisper-small")),
+        "asr_model_family": normalize_model_family(str(asr.get("model_family", "auto"))),
         "device": str(asr.get("device", "cpu")),
         "dtype": str(asr.get("dtype", "float16")),
         "chunk_length_s": float(asr.get("chunk_length_s", 15.0)),
@@ -85,6 +87,9 @@ def load_runtime_settings() -> RuntimeSettings:
     return RuntimeSettings(
         asr_backend=os.getenv("ASR_BACKEND", yd.get("asr_backend", "transformers")),
         asr_model_id=os.getenv("ASR_MODEL_ID", yd.get("asr_model_id", "openai/whisper-small")),
+        asr_model_family=normalize_model_family(
+            os.getenv("ASR_MODEL_FAMILY", yd.get("asr_model_family", "auto"))
+        ),
         device=os.getenv("ASR_DEVICE", yd.get("device", default_device)),
         dtype=os.getenv("ASR_DTYPE", yd.get("dtype", "float16")),
         chunk_length_s=float(os.getenv("ASR_CHUNK_LENGTH_S", yd.get("chunk_length_s", 15.0))),
@@ -127,6 +132,7 @@ def get_asr_service() -> ASRPipeline:
         ASRConfig(
             backend=settings.asr_backend,
             model_id=settings.asr_model_id,
+            model_family=settings.asr_model_family,
             device=settings.device,
             dtype=settings.dtype,
             chunk_length_s=settings.chunk_length_s,
